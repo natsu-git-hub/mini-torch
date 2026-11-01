@@ -1,21 +1,24 @@
 class miniTensor:
-    def __init__(self, data: float):
+    def __init__(self, data: float, _parents: tuple["miniTensor", ...] = ()):
         self.data = data
+        self.grad = 0.0
+        self._parents = _parents
+        self._backward = lambda: None
 
     def __repr__(self):
         return f"miniTensor({self.data})"
 
     def __add__(self, other: "miniTensor | float"):
         other = other if isinstance(other, miniTensor) else miniTensor(other)
-        return miniTensor(self.data + other.data)
+        return miniTensor(self.data + other.data, (self, other))
 
     def __mul__(self, other: "miniTensor | float"):
         other = other if isinstance(other, miniTensor) else miniTensor(other)
-        return miniTensor(self.data * other.data)
+        return miniTensor(self.data * other.data, (self, other))
 
     def __pow__(self, other: float):
         assert isinstance(other, (int, float)), "only int/float powers supported"
-        return miniTensor(self.data ** other)
+        return miniTensor(self.data ** other, (self,))
 
     def __neg__(self):
         return self * -1
