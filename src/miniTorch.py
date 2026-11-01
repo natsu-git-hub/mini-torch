@@ -82,7 +82,7 @@ class miniTensor:
         return out
 
     def relu(self):
-        out = miniTensor(max(0, self.data), (self,))
+        out = miniTensor(max(0.0, self.data), (self,))
 
         def _backward():
             self.grad += (1 if self.data > 0 else 0) * out.grad
@@ -91,7 +91,10 @@ class miniTensor:
         return out
 
     def sigmoid(self):
-        out = miniTensor(math.exp(self.data)/(1+math.exp(self.data)), (self,))
+        if self.data >= 0:
+            out = miniTensor(1 / (1 + math.exp(-self.data)), (self,))
+        else:
+            out = miniTensor(math.exp(self.data) / (1 + math.exp(self.data)), (self,))
 
         def _backward():
             self.grad += out.data * (1-out.data) * out.grad
