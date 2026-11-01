@@ -61,6 +61,20 @@ class miniTensor:
     def __rtruediv__(self, other: float):
         return other * self ** -1
 
+    def backward(self):
+        # topologically sort the graph and then start propagating gradients
+        topo = []
+        visited = set()
+        def build_topo(v):
+            if v not in visited:
+                visited.add(v)
+                for child in v._parents:
+                    build_topo(child)
+                topo.append(v)
+        build_topo(self)
+        self.grad = 1.0
+        for v in reversed(topo):
+            v._backward()
 
 if __name__ == "__main__":
     import torch
@@ -68,8 +82,7 @@ if __name__ == "__main__":
     a = miniTensor(2)
     b = miniTensor(3)
     c = a + b
-    c.grad = 1.0
-    c._backward()
+    c.backward()
 
     ta = torch.tensor(2.0, requires_grad=True)
     tb = torch.tensor(3.0, requires_grad=True)
@@ -85,10 +98,7 @@ if __name__ == "__main__":
     c = a * b
     d = c + a
     e = d * b
-    e.grad = 1.0
-    e._backward()
-    d._backward()
-    c._backward()
+    e.backward()
 
     ta = torch.tensor(2.0, requires_grad=True)
     tb = torch.tensor(3.0, requires_grad=True)
