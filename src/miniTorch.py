@@ -1,3 +1,5 @@
+import math
+
 class miniTensor:
     def __init__(self, data: float, _parents: tuple["miniTensor", ...] = ()):
         self.data = data
@@ -61,6 +63,51 @@ class miniTensor:
     def __rtruediv__(self, other: float):
         return other * self ** -1
 
+    def exp(self):
+        out = miniTensor(math.exp(self.data), (self,))
+        
+        def _backward():
+            self.grad += out.data * out.grad
+        out._backward = _backward
+        
+        return out
+
+    def log(self):
+        out = miniTensor(math.log(self.data), (self,))
+        
+        def _backward():
+            self.grad += (1 / self.data) * out.grad
+        out._backward = _backward
+        
+        return out
+
+    def relu(self):
+        out = miniTensor(max(0, self.data), (self,))
+
+        def _backward():
+            self.grad += (1 if self.data > 0 else 0) * out.grad
+        out._backward = _backward
+
+        return out
+
+    def sigmoid(self):
+        out = miniTensor(math.exp(self.data)/(1+math.exp(self.data)), (self,))
+
+        def _backward():
+            self.grad += out.data * (1-out.data) * out.grad
+        out._backward = _backward
+
+        return out
+
+    def tanh(self):
+        out = miniTensor(math.tanh(self.data), (self,))
+
+        def _backward():
+            self.grad += (1 - out.data**2) * out.grad
+        out._backward = _backward
+
+        return out
+
     def backward(self):
         # topologically sort the graph and then start propagating gradients
         topo = []
@@ -109,3 +156,13 @@ if __name__ == "__main__":
 
     print(f"gradients torch: {ta.grad}, {tb.grad}")
     print(f"gradients miniTorch: {a.grad}, {b.grad}")
+
+    # unary ops
+    for op, value in [("exp", 0.5), ("log", 0.5), ("relu", 0.5), ("relu", -1.5), ("sigmoid", 0.5), ("tanh", 0.5)]:
+        a = miniTensor(value)
+        getattr(a, op)().backward()
+
+        ta = torch.tensor(value, requires_grad=True)
+        getattr(torch, op)(ta).backward()
+
+        print(f"{op}({value}) gradients torch: {ta.grad}, miniTorch: {a.grad}")
